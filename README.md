@@ -1,15 +1,20 @@
+
+# Port Scanner
+
+This tool is for fast open port scaner.
+
+
+## Installation
+
+
+```bash
 git clone https://github.com/HikmatAsifli/Port-Scanner.git
 cd Port-Scanner
 python3 portscanner.py
+```
+    
+## Demo
 
-Enter target IP/domain: xx.xx.xx.xx
 
-Select your scan type:
-[1] 1 to 1024 port scanning
-[2] 1 to 65535 port scanning
-[3] Custom port scanning
-[4] Exit
 
-Select an option: 3
-[+] Enter starting port number: X
-[+] Enter ending port number: X
+ X<img width="1680" alt="Screenshot 2024-03-06 at 11 03 50 AM" src="https://github.com/HikmatAsifli/Port-Scanner/assets/147481104/60616d39-0340-406b-9814-e9b9a31d038a">
