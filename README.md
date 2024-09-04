@@ -10,7 +10,7 @@ This tool is for fast open port scaner.
 ```bash
 git clone https://github.com/HikmatAsifli/Port-Scanner.git
 cd Port-Scanner
-python3 portscanner.py
+python portscanner.py
 ```
     
 ## Demo

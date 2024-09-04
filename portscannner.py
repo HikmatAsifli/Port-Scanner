@@ -4,18 +4,26 @@ import threading
 from datetime import datetime
 import os
 
+# ANSI escape codes for color
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
+WHITE = "\033[97m"
+RESET = "\033[0m"
+
 def clear():
-    # for windows
     if os.name == 'nt':
         _ = os.system('cls')
-    # for mac and linux
     else:
         _ = os.system('clear')
 
 clear()
 
-print('''
-      
+print(f'''
+{RED}      
 $$$$$$$\                        $$\                          $$$$$$\                                                              
 $$  __$$\                       $$ |                        $$  __$$\                                                             
 $$ |  $$ | $$$$$$\   $$$$$$\  $$$$$$\                       $$ /  \__| $$$$$$$\  $$$$$$\  $$$$$$$\  $$$$$$$\   $$$$$$\   $$$$$$\  
@@ -25,34 +33,34 @@ $$ |      $$ |  $$ |$$ |        $$ |$$\                     $$\   $$ |$$ |      
 $$ |      \$$$$$$  |$$ |        \$$$$  |                    \$$$$$$  |\$$$$$$$\ \$$$$$$$ |$$ |  $$ |$$ |  $$ |\$$$$$$$\ $$ |      
 \__|       \______/ \__|         \____/                      \______/  \_______| \_______|\__|  \__|\__|  \__| \_______|\__|      
 |                                                                                                                          |
-|------------------------------------------------Coded by Hikmat-----------------------------------------------------------|''')
+{YELLOW}|------------------------------------------------{MAGENTA}Coded by Hikmat{YELLOW}-----------------------------------------------------------|{RESET}''')
 
-print("\nGithub: https://github.com/HikmatAsifli\n")
+print(f"\n{CYAN}Github: https://github.com/HikmatAsifli{RESET}\n")
 
 def get_target():
     while True:
-        target = input("Enter target IP/domain: ")
+        target = input(f"{YELLOW}Enter target IP/domain: {RESET}")
         try:
             target_ip = socket.gethostbyname(target)
             return target_ip
         except socket.gaierror:
-            print("Invalid hostname. Please try again.")
+            print(f"{RED}Invalid hostname. Please try again.{RESET}")
             continue
 
 target_ip = get_target()
 
 def get_scan_mode():
     while True:
-        print("\nSelect your scan type:")
-        print("[1] 1 to 1024 port scanning")
-        print("[2] 1 to 65535 port scanning")
-        print("[3] Custom port scanning")
-        print("[4] Exit\n")
-        mode = input("Select an option: ")
+        print(f"\n{YELLOW}Select your scan type:{RESET}")
+        print(f"{BLUE}[1] 1 to 1024 port scanning{RESET}")
+        print(f"{BLUE}[2] 1 to 65535 port scanning{RESET}")
+        print(f"{BLUE}[3] Custom port scanning{RESET}")
+        print(f"{BLUE}[4] Exit{RESET}\n")
+        mode = input(f"{YELLOW}Select an option: {RESET}")
         if mode.isdigit() and 1 <= int(mode) <= 4:
             return int(mode)
         else:
-            print("Invalid input. Please enter a number between 1 and 4.")
+            print(f"{RED}Invalid input. Please enter a number between 1 and 4.{RESET}")
             continue
 
 mode = get_scan_mode()
@@ -60,40 +68,38 @@ mode = get_scan_mode()
 if mode == 3:
     while True:
         try:
-            custom_port_start = int(input("[+] Enter starting port number: "))
-            custom_port_end = int(input("[+] Enter ending port number: "))
+            custom_port_start = int(input(f"{YELLOW}[+] Enter starting port number: {RESET}"))
+            custom_port_end = int(input(f"{YELLOW}[+] Enter ending port number: {RESET}"))
             break
         except ValueError:
-            print("Invalid input. Please enter numeric values for port numbers.")
+            print(f"{RED}Invalid input. Please enter numeric values for port numbers.{RESET}")
 
-print("-" * 50)
-print(f"Target IP: {target_ip}")
-print("Scanning started at:", datetime.now())
-print("-" * 50)
+print(f"{WHITE}-" * 50)
+print(f"{GREEN}Target IP: {target_ip}{RESET}")
+print(f"{GREEN}Scanning started at: {datetime.now()}{RESET}")
+print(f"{WHITE}-" * 50)
 
 def scan_port(port):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(5)
+            s.settimeout(1)  # Reduced timeout for faster scanning
             result = s.connect_ex((target_ip, port))
             if result == 0:
-                print(f"Port {port} is open!")
+                print(f"{GREEN}Port {port} is open!{RESET}")
                 return True
-            else:
-                return False
+            return False
     except KeyboardInterrupt:
         sys.exit()
     except socket.gaierror:
-        print("Hostname could not be resolved.")
+        print(f"{RED}Hostname could not be resolved.{RESET}")
         sys.exit()
     except socket.error:
-        print("Could not connect to server.")
+        print(f"{RED}Could not connect to server.{RESET}")
         sys.exit()
 
-def scan_ports(ports):
-    for port in ports:
-        if scan_port(port):
-            open_ports.append(port)
+def scan_ports(port_range):
+    for port in port_range:
+        scan_port(port)
 
 open_ports = []
 
@@ -107,16 +113,18 @@ def run_scanner(threads, mode):
     else:
         sys.exit()
 
+    port_ranges = [list(ports)[i::threads] for i in range(threads)]
+    
     thread_list = []
 
-    for _ in range(threads):
-        thread = threading.Thread(target=scan_ports, args=(ports,))
+    for port_range in port_ranges:
+        thread = threading.Thread(target=scan_ports, args=(port_range,))
         thread_list.append(thread)
         thread.start()
 
     for thread in thread_list:
         thread.join()
 
-run_scanner(1021, mode)
+run_scanner(100, mode)
 
-print("Scanning complete at:", datetime.now())
+print(f"{GREEN}Scanning complete at: {datetime.now()}{RESET}")
