@@ -1,8 +1,10 @@
 import socket
 import sys
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import os
+import logging
 
 # ANSI escape codes for color
 RED = "\033[91m"
@@ -14,11 +16,14 @@ CYAN = "\033[96m"
 WHITE = "\033[97m"
 RESET = "\033[0m"
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format=f"{WHITE}%(message)s{RESET}")
+
 def clear():
     if os.name == 'nt':
-        _ = os.system('cls')
+        os.system('cls')
     else:
-        _ = os.system('clear')
+        os.system('clear')
 
 clear()
 
@@ -44,23 +49,23 @@ def get_target():
             target_ip = socket.gethostbyname(target)
             return target_ip
         except socket.gaierror:
-            print(f"{RED}Invalid hostname. Please try again.{RESET}")
+            logging.error(f"{RED}Invalid hostname. Please try again.{RESET}")
             continue
 
 target_ip = get_target()
 
 def get_scan_mode():
     while True:
-        print(f"\n{YELLOW}Select your scan type:{RESET}")
-        print(f"{BLUE}[1] 1 to 1024 port scanning{RESET}")
-        print(f"{BLUE}[2] 1 to 65535 port scanning{RESET}")
-        print(f"{BLUE}[3] Custom port scanning{RESET}")
-        print(f"{BLUE}[4] Exit{RESET}\n")
+        logging.info(f"\n{YELLOW}Select your scan type:{RESET}")
+        logging.info(f"{BLUE}[1] 1 to 1024 port scanning{RESET}")
+        logging.info(f"{BLUE}[2] 1 to 65535 port scanning{RESET}")
+        logging.info(f"{BLUE}[3] Custom port scanning{RESET}")
+        logging.info(f"{BLUE}[4] Exit{RESET}\n")
         mode = input(f"{YELLOW}Select an option: {RESET}")
         if mode.isdigit() and 1 <= int(mode) <= 4:
             return int(mode)
         else:
-            print(f"{RED}Invalid input. Please enter a number between 1 and 4.{RESET}")
+            logging.error(f"{RED}Invalid input. Please enter a number between 1 and 4.{RESET}")
             continue
 
 mode = get_scan_mode()
@@ -70,14 +75,19 @@ if mode == 3:
         try:
             custom_port_start = int(input(f"{YELLOW}[+] Enter starting port number: {RESET}"))
             custom_port_end = int(input(f"{YELLOW}[+] Enter ending port number: {RESET}"))
-            break
+            if 1 <= custom_port_start <= custom_port_end <= 65535:
+                break
+            else:
+                logging.error(f"{RED}Invalid port range. Please enter valid port numbers between 1 and 65535.{RESET}")
         except ValueError:
-            print(f"{RED}Invalid input. Please enter numeric values for port numbers.{RESET}")
+            logging.error(f"{RED}Invalid input. Please enter numeric values for port numbers.{RESET}")
 
-print(f"{WHITE}-" * 50)
-print(f"{GREEN}Target IP: {target_ip}{RESET}")
-print(f"{GREEN}Scanning started at: {datetime.now()}{RESET}")
-print(f"{WHITE}-" * 50)
+logging.info(f"{WHITE}-" * 50)
+logging.info(f"{GREEN}Target IP: {target_ip}{RESET}")
+logging.info(f"{GREEN}Scanning started at: {datetime.now()}{RESET}")
+logging.info(f"{WHITE}-" * 50)
+
+open_ports = []
 
 def scan_port(port):
     try:
@@ -85,23 +95,13 @@ def scan_port(port):
             s.settimeout(1)  # Reduced timeout for faster scanning
             result = s.connect_ex((target_ip, port))
             if result == 0:
-                print(f"{GREEN}Port {port} is open!{RESET}")
+                logging.info(f"{GREEN}Port {port} is open!{RESET}")
+                open_ports.append(port)
                 return True
             return False
-    except KeyboardInterrupt:
-        sys.exit()
-    except socket.gaierror:
-        print(f"{RED}Hostname could not be resolved.{RESET}")
-        sys.exit()
     except socket.error:
-        print(f"{RED}Could not connect to server.{RESET}")
-        sys.exit()
-
-def scan_ports(port_range):
-    for port in port_range:
-        scan_port(port)
-
-open_ports = []
+        logging.error(f"{RED}Could not connect to server on port {port}.{RESET}")
+        return False
 
 def run_scanner(threads, mode):
     if mode == 1:
@@ -113,18 +113,11 @@ def run_scanner(threads, mode):
     else:
         sys.exit()
 
-    port_ranges = [list(ports)[i::threads] for i in range(threads)]
-    
-    thread_list = []
-
-    for port_range in port_ranges:
-        thread = threading.Thread(target=scan_ports, args=(port_range,))
-        thread_list.append(thread)
-        thread.start()
-
-    for thread in thread_list:
-        thread.join()
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        executor.map(scan_port, ports)
 
 run_scanner(100, mode)
 
-print(f"{GREEN}Scanning complete at: {datetime.now()}{RESET}")
+logging.info(f"{WHITE}-" * 50)
+logging.info(f"{GREEN}Scanning complete at: {datetime.now()}{RESET}")
+logging.info(f"{WHITE}Open ports: {open_ports if open_ports else 'None'}{RESET}")
